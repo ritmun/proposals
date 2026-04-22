@@ -77,12 +77,14 @@ These workflows are templates. Customize them for your needs:
 
 ```mermaid
 graph TD
-    A[rosa-hcp-cd.yml] --> B[preflight]
+    F[Pull Request] --> G[terraform-plan-pr.yml]
+    G --> H[PR Merged to main]
+    H --> A[rosa-hcp-cd.yml]
+
+    A --> B[preflight]
     B --> C[regional-cluster-cd.yml]
     C --> D[management-cluster-cd.yml]
     D --> E[bootstrap-argocd.yml]
-
-    F[Pull Request] --> G[terraform-plan-pr.yml]
 ```
 
 ## Features
