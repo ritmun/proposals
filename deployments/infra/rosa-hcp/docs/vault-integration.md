@@ -12,7 +12,7 @@ This guide provides detailed configuration examples for integrating HashiCorp Va
 - Service-to-service authentication credentials
 - Third-party integration secrets
 
-> **Note**: This is separate from GitHub Secrets, which are used only for CI/CD pipeline configuration. See [infrastructure-comparison.md](../infrastructure-comparison.md#4-required-github-secrets) for details.
+> **Note**: This is separate from GitHub Secrets, which are used only for CI/CD pipeline configuration. See [infrastructure-comparison.md](../../infrastructure-comparison.md#4-required-github-secrets) for details.
 
 ---
 

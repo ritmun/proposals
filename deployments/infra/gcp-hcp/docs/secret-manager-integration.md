@@ -13,7 +13,7 @@ This guide provides detailed configuration examples for integrating GCP Secret M
 - Third-party integration secrets
 - Container pull secrets
 
-> **Note**: This is separate from GitHub Secrets, which are used only for CI/CD pipeline configuration. See [infrastructure-comparison.md](../infrastructure-comparison.md#application-secret-management) for the comparison between platforms.
+> **Note**: This is separate from GitHub Secrets, which are used only for CI/CD pipeline configuration. See [infrastructure-comparison.md](../../infrastructure-comparison.md#application-secret-management) for the comparison between platforms.
 
 ---
 

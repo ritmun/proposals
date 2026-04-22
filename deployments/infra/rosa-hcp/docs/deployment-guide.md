@@ -295,7 +295,7 @@ This workflow automatically runs Terraform plan on pull requests and posts the r
 
 ## Additional Resources
 
-- **[Infrastructure Comparison](../infrastructure-comparison.md)** - ARO-HCP vs ROSA HCP vs GCP HCP comparison
+- **[Infrastructure Comparison](../../infrastructure-comparison.md)** - ARO-HCP vs ROSA HCP vs GCP HCP comparison
 - **[Vault Integration Guide](vault-integration.md)** - HashiCorp Vault setup for ROSA HCP/ARO-HCP
 - **[ROSA HCP Repository](https://github.com/openshift-online/rosa-regional-platform)** - Official ROSA HCP repository
 - **[ARO-HCP Repo](https://github.com/Azure/ARO-HCP)** - ARO-HCP reference implementation
