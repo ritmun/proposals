@@ -318,7 +318,7 @@ gcp-hcp-infra/
 - **[Official Deployment Guide](https://github.com/openshift-online/gcp-hcp-infra/blob/main/docs/DEPLOYMENT_GUIDE.md)** - Complete deployment walkthrough
 - **[Secret Manager Integration](secret-manager-integration.md)** - Detailed GCP Secret Manager setup
 - **[Terraform Examples](../terraform-examples/)** - Sample configurations for integration and production
-- **[Infrastructure Comparison](../infrastructure-comparison.md)** - ARO-HCP vs ROSA vs GCP HCP comparison
+- **[Infrastructure Comparison](../../infrastructure-comparison.md)** - ARO-HCP vs ROSA vs GCP HCP comparison
 - **[README.md](README.md)** - Quick reference and getting started
 
 ### Related Documentation

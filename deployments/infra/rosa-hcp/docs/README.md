@@ -10,30 +10,30 @@ These workflows are **reference implementation proposals** modeled after the ARO
 
 ### Main Orchestrator
 
-- **[rosa-hcp-cd.yml](rosa-hcp-cd.yml)** - Main continuous deployment workflow
+- **[rosa-hcp-cd.yml](../workflows/rosa-hcp-cd.yml)** - Main continuous deployment workflow
   - Orchestrates all deployment stages
   - Supports manual trigger with environment selection
   - Auto-triggers after container image builds
 
 ### Infrastructure Deployment
 
-- **[regional-cluster-cd.yml](regional-cluster-cd.yml)** - Regional Cluster deployment
+- **[regional-cluster-cd.yml](../workflows/regional-cluster-cd.yml)** - Regional Cluster deployment
   - Deploys EKS Regional Cluster (RC)
   - Provisions VPC, RDS, IoT Core, API Gateway, etc.
   - Reusable workflow with environment parameters
 
-- **[management-cluster-cd.yml](management-cluster-cd.yml)** - Management Cluster deployment
+- **[management-cluster-cd.yml](../workflows/management-cluster-cd.yml)** - Management Cluster deployment
   - Deploys EKS Management Cluster(s) (MC)
   - Supports multiple clusters via matrix strategy
   - Cross-account deployment support
 
 ### Bootstrap & Validation
 
-- **[bootstrap-argocd.yml](bootstrap-argocd.yml)** - ArgoCD bootstrap
+- **[bootstrap-argocd.yml](../workflows/bootstrap-argocd.yml)** - ArgoCD bootstrap
   - Installs ArgoCD on Regional Cluster
   - Applies ApplicationSets for GitOps
 
-- **[terraform-plan-pr.yml](terraform-plan-pr.yml)** - PR validation
+- **[terraform-plan-pr.yml](../workflows/terraform-plan-pr.yml)** - PR validation
   - Runs Terraform plan on pull requests
   - Posts plan output as PR comment
   - Validates changes before merge
@@ -47,7 +47,7 @@ These workflows are **reference implementation proposals** modeled after the ARO
    cp examples/rosa/workflows/*.yml .github/workflows/
    ```
 
-2. **Configure GitHub Secrets** (see [infrastructure-comparison.md](../infrastructure-comparison.md#4-required-github-secrets)):
+2. **Configure GitHub Secrets** (see [infrastructure-comparison.md](../../infrastructure-comparison.md#4-required-github-secrets)):
    - `AWS_REGION`
    - `AWS_ACCOUNT_ID_REGIONAL`
    - `AWS_ACCOUNT_ID_MANAGEMENT`
@@ -56,7 +56,7 @@ These workflows are **reference implementation proposals** modeled after the ARO
    - `TERRAFORM_STATE_BUCKET`
    - `TERRAFORM_STATE_DYNAMODB_TABLE`
 
-3. **Set up AWS OIDC** (see [infrastructure-comparison.md](../infrastructure-comparison.md#2-github-oidc-setup-for-aws))
+3. **Set up AWS OIDC** (see [infrastructure-comparison.md](../../infrastructure-comparison.md#2-github-oidc-setup-for-aws))
 
 4. **Trigger workflow**:
    - Navigate to Actions → "ROSA HCP Continuous Deployment"
@@ -101,7 +101,7 @@ graph TD
 ## Documentation
 
 For complete setup instructions and detailed explanations, see:
-- [infrastructure-comparison.md](../infrastructure-comparison.md) - Full deployment guide
+- [infrastructure-comparison.md](../../infrastructure-comparison.md) - Full deployment guide
 
 ## Notes
 
@@ -113,6 +113,6 @@ For complete setup instructions and detailed explanations, see:
 ## Support
 
 For issues or questions about these workflows:
-1. Review the [Troubleshooting section](../infrastructure-comparison.md#troubleshooting)
+1. Review the [Troubleshooting section](../../infrastructure-comparison.md#troubleshooting)
 2. Check GitHub Actions logs for detailed error messages
 3. Verify AWS IAM permissions and OIDC configuration
