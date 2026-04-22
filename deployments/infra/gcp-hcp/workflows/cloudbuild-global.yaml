@@ -1,0 +1,105 @@
+# Cloud Build configuration for GCP HCP Global Infrastructure deployment
+#
+# This workflow automates Terraform deployment for global infrastructure
+# Trigger: Git push to main branch (filtered by path)
+#
+# Setup:
+# 1. Create Cloud Build trigger in GCP Console or via gcloud:
+#    gcloud builds triggers create github \
+#      --repo-name=gcp-hcp-infra \
+#      --repo-owner=your-org \
+#      --branch-pattern=^main$ \
+#      --build-config=gcp-hcp/workflows/cloudbuild-global.yaml \
+#      --included-files=terraform/config/global/**,terraform/modules/global/**
+#
+# 2. Grant Cloud Build service account permissions:
+#    - roles/compute.admin
+#    - roles/container.admin
+#    - roles/iam.serviceAccountAdmin
+#    - roles/storage.admin
+#    - roles/secretmanager.admin
+
+steps:
+  # Step 1: Initialize Terraform
+  - name: 'hashicorp/terraform:1.5'
+    id: 'terraform-init'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        cd terraform/config/global/${_ENVIRONMENT}/${_SECTOR}/${_REGION}
+        terraform init \
+          -backend-config="bucket=${_TERRAFORM_STATE_BUCKET}" \
+          -backend-config="prefix=global/${_ENVIRONMENT}/${_SECTOR}/${_REGION}"
+
+  # Step 2: Terraform Plan
+  - name: 'hashicorp/terraform:1.5'
+    id: 'terraform-plan'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        cd terraform/config/global/${_ENVIRONMENT}/${_SECTOR}/${_REGION}
+        terraform plan -out=tfplan
+
+  # Step 3: Terraform Apply
+  - name: 'hashicorp/terraform:1.5'
+    id: 'terraform-apply'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        cd terraform/config/global/${_ENVIRONMENT}/${_SECTOR}/${_REGION}
+        terraform apply -auto-approve tfplan
+
+  # Step 4: Save Terraform Outputs
+  - name: 'hashicorp/terraform:1.5'
+    id: 'terraform-output'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        cd terraform/config/global/${_ENVIRONMENT}/${_SECTOR}/${_REGION}
+        terraform output -json > /workspace/outputs/global-outputs.json
+
+  # Step 5: Create ArgoCD GitHub credentials in Secret Manager (manual step reminder)
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'reminder-manual-step'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        echo "================================================"
+        echo "MANUAL STEP REQUIRED:"
+        echo "Create ArgoCD GitHub credentials secret:"
+        echo ""
+        echo "gcloud secrets create argocd-repo-creds \\"
+        echo "  --project=\$PROJECT_ID \\"
+        echo "  --data-file=credentials.json \\"
+        echo "  --replication-policy=automatic"
+        echo "================================================"
+
+# Substitution variables (set in Cloud Build trigger or default here)
+substitutions:
+  _ENVIRONMENT: 'integration'
+  _SECTOR: 'main'
+  _REGION: 'us-central1'
+  _TERRAFORM_STATE_BUCKET: 'gcp-hcp-terraform-state'
+
+# Store outputs as artifacts
+artifacts:
+  objects:
+    location: 'gs://${_TERRAFORM_STATE_BUCKET}/outputs/${BUILD_ID}'
+    paths:
+      - '/workspace/outputs/*.json'
+
+# Build timeout
+timeout: '1800s'
+
+# Service account (use project's Cloud Build SA with appropriate permissions)
+serviceAccount: 'projects/${PROJECT_ID}/serviceAccounts/cloud-build@${PROJECT_ID}.iam.gserviceaccount.com'
+
+# Options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'

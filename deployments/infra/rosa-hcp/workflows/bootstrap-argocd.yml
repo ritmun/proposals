@@ -1,0 +1,58 @@
+name: Bootstrap ArgoCD
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: string
+      aws_region:
+        description: 'AWS region'
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  bootstrap_regional_cluster:
+    name: Bootstrap ArgoCD on Regional Cluster
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME_REGIONAL }}
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.18.6'
+
+      - name: Configure kubectl for Regional Cluster
+        run: |
+          aws eks update-kubeconfig \
+            --name ${{ inputs.environment }}-${{ inputs.aws_region }}-rc \
+            --region ${{ inputs.aws_region }}
+
+      - name: Install ArgoCD
+        run: |
+          kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+          kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+      - name: Wait for ArgoCD to be ready
+        run: |
+          kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
+
+      - name: Apply ArgoCD ApplicationSets
+        run: |
+          kubectl apply -f argocd/config/applicationset/

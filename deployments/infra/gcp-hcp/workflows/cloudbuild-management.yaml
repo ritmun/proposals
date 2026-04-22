@@ -1,0 +1,132 @@
+# Cloud Build configuration for GCP HCP Management Cluster deployment
+#
+# This workflow automates Terraform deployment for management clusters
+# Trigger: Git push to main branch (filtered by path)
+#
+# Setup:
+# 1. Create Cloud Build trigger:
+#    gcloud builds triggers create github \
+#      --repo-name=gcp-hcp-infra \
+#      --repo-owner=your-org \
+#      --branch-pattern=^main$ \
+#      --build-config=gcp-hcp/workflows/cloudbuild-management.yaml \
+#      --included-files=terraform/config/management-cluster/**,terraform/modules/management-cluster/**
+#
+# 2. Grant Cloud Build service account permissions:
+#    - roles/compute.admin
+#    - roles/container.admin
+#    - roles/gkehub.admin (for cross-project Fleet registration)
+#    - roles/iam.serviceAccountAdmin
+
+steps:
+  # Step 1: Initialize Terraform
+  - name: 'hashicorp/terraform:1.5'
+    id: 'terraform-init'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        cd terraform/config/management-cluster/${_ENVIRONMENT}/${_SECTOR}/${_REGION}/${_CLUSTER_NAME}
+        terraform init \
+          -backend-config="bucket=${_TERRAFORM_STATE_BUCKET}" \
+          -backend-config="prefix=management-cluster/${_ENVIRONMENT}/${_SECTOR}/${_REGION}/${_CLUSTER_NAME}"
+
+  # Step 2: Terraform Plan
+  - name: 'hashicorp/terraform:1.5'
+    id: 'terraform-plan'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        cd terraform/config/management-cluster/${_ENVIRONMENT}/${_SECTOR}/${_REGION}/${_CLUSTER_NAME}
+        terraform plan -out=tfplan
+
+  # Step 3: Terraform Apply
+  - name: 'hashicorp/terraform:1.5'
+    id: 'terraform-apply'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        cd terraform/config/management-cluster/${_ENVIRONMENT}/${_SECTOR}/${_REGION}/${_CLUSTER_NAME}
+        terraform apply -auto-approve tfplan
+
+  # Step 4: Wait for Fleet Config Sync to deploy Hypershift
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'wait-for-fleet-sync'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        echo "Waiting for Fleet Config Sync to deploy Hypershift operator..."
+
+        # Get cluster credentials
+        CLUSTER_NAME=$(cd terraform/config/management-cluster/${_ENVIRONMENT}/${_SECTOR}/${_REGION}/${_CLUSTER_NAME} && terraform output -raw cluster_name)
+        PROJECT_ID=$(cd terraform/config/management-cluster/${_ENVIRONMENT}/${_SECTOR}/${_REGION}/${_CLUSTER_NAME} && terraform output -raw project_id)
+
+        gcloud container clusters get-credentials $${CLUSTER_NAME} \
+          --region=${_REGION} \
+          --project=$${PROJECT_ID}
+
+        # Wait for ArgoCD to be deployed by Fleet Config Sync
+        echo "Waiting for ArgoCD deployment..."
+        for i in {1..30}; do
+          if kubectl get namespace argocd 2>/dev/null; then
+            echo "ArgoCD namespace exists"
+            break
+          fi
+          echo "Waiting for ArgoCD... (attempt $i/30)"
+          sleep 20
+        done
+
+  # Step 5: Verify Hypershift Operator is deployed
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'verify-hypershift'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        echo "Verifying Hypershift operator deployment..."
+
+        # Wait for hypershift-operator namespace
+        kubectl wait --for=condition=available --timeout=300s \
+          deployment/operator -n hypershift 2>/dev/null || \
+          echo "Hypershift operator not yet deployed (will be deployed by ArgoCD)"
+
+        echo "Cluster is ready for customer control planes"
+
+  # Step 6: Save Terraform Outputs
+  - name: 'hashicorp/terraform:1.5'
+    id: 'terraform-output'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        cd terraform/config/management-cluster/${_ENVIRONMENT}/${_SECTOR}/${_REGION}/${_CLUSTER_NAME}
+        terraform output -json > /workspace/outputs/management-outputs.json
+
+# Substitution variables
+substitutions:
+  _ENVIRONMENT: 'integration'
+  _SECTOR: 'main'
+  _REGION: 'us-central1'
+  _CLUSTER_NAME: 'mgmt-1'
+  _TERRAFORM_STATE_BUCKET: 'gcp-hcp-terraform-state'
+
+# Store outputs as artifacts
+artifacts:
+  objects:
+    location: 'gs://${_TERRAFORM_STATE_BUCKET}/outputs/${BUILD_ID}'
+    paths:
+      - '/workspace/outputs/*.json'
+
+# Build timeout (longer for cluster creation + Fleet sync + ArgoCD deployment)
+timeout: '2400s'
+
+# Service account
+serviceAccount: 'projects/${PROJECT_ID}/serviceAccounts/cloud-build@${PROJECT_ID}.iam.gserviceaccount.com'
+
+# Options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'

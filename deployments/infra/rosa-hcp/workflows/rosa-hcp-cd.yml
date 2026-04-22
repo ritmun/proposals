@@ -1,0 +1,96 @@
+name: ROSA HCP Continuous Deployment
+
+env:
+  DEPLOY_ENV: dev
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  TERRAFORM_VERSION: "1.9.0"
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - int
+          - stage
+          - prod
+      deploy_regional:
+        description: 'Deploy Regional Cluster'
+        required: false
+        default: true
+        type: boolean
+      deploy_management:
+        description: 'Deploy Management Cluster(s)'
+        required: false
+        default: true
+        type: boolean
+
+  workflow_run:
+    workflows: ["Build and Push Container Images"]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.environment || 'dev' }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  preflight:
+    name: Preflight Checks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: No reruns allowed
+        run: |
+          if [ "$GITHUB_RUN_ATTEMPT" -gt 1 ]; then
+            echo "❌ No re-runs allowed. Trigger workflow manually."
+            exit 1
+          fi
+          echo "✅ First run, proceeding..."
+
+      - name: Validate environment
+        run: |
+          ENV="${{ inputs.environment || 'dev' }}"
+          if [[ ! "$ENV" =~ ^(dev|int|stage|prod)$ ]]; then
+            echo "❌ Invalid environment: $ENV"
+            exit 1
+          fi
+          echo "✅ Environment validated: $ENV"
+
+  deploy_regional_cluster:
+    name: Deploy Regional Cluster Infrastructure
+    needs: [preflight]
+    if: inputs.deploy_regional != false
+    uses: ./.github/workflows/regional-cluster-cd.yml
+    secrets: inherit
+    with:
+      environment: ${{ inputs.environment || 'dev' }}
+      aws_region: ${{ secrets.AWS_REGION }}
+
+  deploy_management_clusters:
+    name: Deploy Management Cluster Infrastructure
+    needs: [deploy_regional_cluster]
+    if: inputs.deploy_management != false
+    uses: ./.github/workflows/management-cluster-cd.yml
+    secrets: inherit
+    with:
+      environment: ${{ inputs.environment || 'dev' }}
+      aws_region: ${{ secrets.AWS_REGION }}
+      regional_cluster_deployed: true
+
+  bootstrap_argocd:
+    name: Bootstrap ArgoCD
+    needs: [deploy_regional_cluster, deploy_management_clusters]
+    uses: ./.github/workflows/bootstrap-argocd.yml
+    secrets: inherit
+    with:
+      environment: ${{ inputs.environment || 'dev' }}
+      aws_region: ${{ secrets.AWS_REGION }}

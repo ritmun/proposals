@@ -1,0 +1,91 @@
+name: Management Cluster Deployment
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: string
+      aws_region:
+        description: 'AWS region'
+        required: true
+        type: string
+      regional_cluster_deployed:
+        description: 'Whether regional cluster is deployed'
+        required: false
+        type: boolean
+        default: false
+      management_cluster_count:
+        description: 'Number of management clusters to deploy'
+        required: false
+        type: number
+        default: 1
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  TERRAFORM_VERSION: "1.9.0"
+
+jobs:
+  deploy_management_cluster:
+    name: Management Cluster ${{ matrix.cluster_index }} - ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    strategy:
+      matrix:
+        cluster_index: [1] # Extend to [1, 2, 3] for multiple MCs
+      max-parallel: 1 # Deploy sequentially to avoid race conditions
+    defaults:
+      run:
+        working-directory: terraform/config/management-cluster
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME_MANAGEMENT }}
+          aws-region: ${{ inputs.aws_region }}
+          role-session-name: GitHubActions-ManagementCluster${{ matrix.cluster_index }}-${{ github.run_id }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TERRAFORM_STATE_BUCKET }}" \
+            -backend-config="key=management-cluster/${{ inputs.environment }}/${{ inputs.aws_region }}/mc${{ matrix.cluster_index }}/terraform.tfstate" \
+            -backend-config="region=${{ inputs.aws_region }}" \
+            -backend-config="dynamodb_table=${{ secrets.TERRAFORM_STATE_DYNAMODB_TABLE }}" \
+            -backend-config="encrypt=true"
+
+      - name: Terraform Plan
+        run: |
+          terraform plan \
+            -var-file="../../deploy/${{ inputs.environment }}/management-cluster.tfvars" \
+            -var="region=${{ inputs.aws_region }}" \
+            -var="environment=${{ inputs.environment }}" \
+            -var="management_id=${{ inputs.environment }}-${{ inputs.aws_region }}-mc${{ matrix.cluster_index }}" \
+            -var="regional_aws_account_id=${{ secrets.AWS_ACCOUNT_ID_REGIONAL }}" \
+            -out=tfplan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig \
+            --name ${{ inputs.environment }}-${{ inputs.aws_region }}-mc${{ matrix.cluster_index }} \
+            --region ${{ inputs.aws_region }} \
+            --role-arn ${{ secrets.AWS_ROLE_TO_ASSUME_MANAGEMENT }}
+
+      - name: Verify EKS Cluster Access
+        run: kubectl get nodes
