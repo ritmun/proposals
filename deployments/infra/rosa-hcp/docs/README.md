@@ -47,7 +47,7 @@ These workflows are **reference implementation proposals** modeled after the ARO
    cp examples/rosa/workflows/*.yml .github/workflows/
    ```
 
-2. **Configure GitHub Secrets** (see [infrastructure-comparison.md](../../infrastructure-comparison.md#4-required-github-secrets)):
+2. **Configure GitHub Secrets** (see [deployment-guide.md](deployment-guide.md#4-required-github-secrets-cicd-pipeline-configuration)):
    - `AWS_REGION`
    - `AWS_ACCOUNT_ID_REGIONAL`
    - `AWS_ACCOUNT_ID_MANAGEMENT`
@@ -56,7 +56,7 @@ These workflows are **reference implementation proposals** modeled after the ARO
    - `TERRAFORM_STATE_BUCKET`
    - `TERRAFORM_STATE_DYNAMODB_TABLE`
 
-3. **Set up AWS OIDC** (see [infrastructure-comparison.md](../../infrastructure-comparison.md#2-github-oidc-setup-for-aws))
+3. **Set up AWS OIDC** (see [deployment-guide.md](deployment-guide.md#2-github-oidc-setup-for-aws))
 
 4. **Trigger workflow**:
    - Navigate to Actions → "ROSA HCP Continuous Deployment"
@@ -113,6 +113,6 @@ For complete setup instructions and detailed explanations, see:
 ## Support
 
 For issues or questions about these workflows:
-1. Review the [Troubleshooting section](../../infrastructure-comparison.md#troubleshooting)
+1. Review the [Troubleshooting section](deployment-guide.md#troubleshooting)
 2. Check GitHub Actions logs for detailed error messages
 3. Verify AWS IAM permissions and OIDC configuration
