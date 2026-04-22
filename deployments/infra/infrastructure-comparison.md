@@ -128,6 +128,8 @@ All three platforms use a combination of cloud-native and external secret manage
 
 #### ARO-HCP: Azure Key Vault with CSI Driver
 
+---
+
 ARO-HCP uses **Azure Key Vault** with the **Secrets Store CSI Driver** for application runtime secrets management.
 
 **Integration Pattern**:
@@ -150,6 +152,8 @@ The proposed ROSA HCP pattern uses **HashiCorp Vault** for application runtime s
 - **Kubernetes Authentication** - Uses ServiceAccount tokens
 
 #### GCP HCP: Native Secret Manager Integration
+
+---
 
 GCP HCP uses **Google Cloud Secret Manager** natively integrated via External Secrets Operator.
 
