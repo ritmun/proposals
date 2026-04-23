@@ -139,6 +139,8 @@ ARO-HCP uses **Azure Key Vault** with the **Secrets Store CSI Driver** for appli
 
 #### ROSA HCP: HashiCorp Vault (Proposed)
 
+---
+
 The proposed ROSA HCP pattern uses **HashiCorp Vault** for application runtime secrets management.
 
 📘 **For detailed Vault integration examples (ROSA HCP), see: [vault-integration.md](rosa-hcp/docs/vault-integration.md)**
@@ -170,15 +172,15 @@ GCP HCP uses **Google Cloud Secret Manager** natively integrated via External Se
 
 ### Secret Types Comparison
 
-| **Secret Type** | **Storage** | **Use Case** | **Access Method** |
-|----------------|------------|--------------|-------------------|
-| **Infrastructure/CI** | GitHub Secrets (UI) | Deployment pipeline config, account IDs, IAM role ARNs | GitHub Actions workflows via `${{ secrets.NAME }}` |
-| **Application Runtime (ARO-HCP/ROSA HCP)** | HashiCorp Vault | Database passwords, API keys, certificates | External Secrets Operator or Vault Agent Injector |
-| **Application Runtime (GCP HCP)** | GCP Secret Manager | Database passwords, API keys, certificates | External Secrets Operator |
+| **Secret Type**         | **Storage** | **Use Case** | **Access Method** |
+|-------------------------|------------|--------------|-------------------|
+| **Infrastructure/CI**   | GitHub Secrets (UI) | Deployment pipeline config, account IDs, IAM role ARNs | GitHub Actions workflows via `${{ secrets.NAME }}` |
+| **Application Runtime** | HashiCorp Vault | Database passwords, API keys, certificates | External Secrets Operator or Vault Agent Injector |
+| **Application Runtime** | GCP Secret Manager | Database passwords, API keys, certificates | External Secrets Operator |
 
 ### Additional Resources
 
-**For HashiCorp Vault (ARO-HCP & ROSA HCP)**:
+**For HashiCorp Vault**:
 
 The comprehensive Vault integration guide covers:
 - Detailed setup for External Secrets Operator (ESO)
@@ -190,7 +192,7 @@ The comprehensive Vault integration guide covers:
 
 **📄 See full guide**: [vault-integration.md](rosa-hcp/docs/vault-integration.md)
 
-**For GCP Secret Manager (GCP HCP)**:
+**For GCP Secret Manager**:
 
 See the [gcp-hcp-infra repository](https://github.com/openshift-online/gcp-hcp-infra) for:
 - External Secrets Operator configuration with GCP Secret Manager
